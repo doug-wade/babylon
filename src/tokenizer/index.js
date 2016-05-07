@@ -319,11 +319,22 @@ export default class Tokenizer {
     return this.finishOp(type, width);
   }
 
-  readToken_pipe_amp(code) { // '|&'
+  readToken_pipe() { // '|'
     let next = this.input.charCodeAt(this.state.pos + 1);
-    if (next === code) return this.finishOp(code === 124 ? tt.logicalOR : tt.logicalAND, 2);
+    let third = this.input.charCodeAt(this.state.pos + 2);
+    if (next === 124 && third === 61 && this.hasPlugin("conditionalAssignment")) {
+      return this.finishOp(tt.conditionalAssignment, 3);
+    }
+    if (next === 124) return this.finishOp(tt.logicalOR, 2);
     if (next === 61) return this.finishOp(tt.assign, 2);
-    return this.finishOp(code === 124 ? tt.bitwiseOR : tt.bitwiseAND, 1);
+    return this.finishOp(tt.bitwiseOR, 1);
+  }
+
+  readToken_amp() { // '&'
+    let next = this.input.charCodeAt(this.state.pos + 1);
+    if (next === 38) return this.finishOp(tt.logicalAND, 2);
+    if (next === 61) return this.finishOp(tt.assign, 2);
+    return this.finishOp(tt.bitwiseAND, 1);
   }
 
   readToken_caret() { // '^'
@@ -448,8 +459,11 @@ export default class Tokenizer {
       case 37: case 42: // '%*'
         return this.readToken_mult_modulo(code);
 
-      case 124: case 38: // '|&'
-        return this.readToken_pipe_amp(code);
+      case 124: // '|'
+        return this.readToken_pipe(code);
+
+      case 38: // '&'
+        return this.readToken_amp(code);
 
       case 94: // '^'
         return this.readToken_caret();
